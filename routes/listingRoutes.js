@@ -1,0 +1,145 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const { Listing } = require('../models');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads/listings');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure Multer storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir); // Save images in the uploads/listings directory
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`); // Rename file with timestamp
+  },
+});
+
+// File filter to accept only images
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+// Create Multer instance
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+});
+
+// Create a new listing with image upload
+router.post('/listings', upload.single('image'), async (req, res) => {
+  try {
+    const { title, description, price, user_id, category_id, location_id, status } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !price || !user_id || !status) {
+      return res.status(400).json({
+        error: 'Missing required fields: title, description, price, user_id, or status',
+      });
+    }
+
+    const image_path = req.file ? `/uploads/listings/${req.file.filename}` : null;
+
+    const listing = await Listing.create({
+      title,
+      description,
+      price,
+      user_id,
+      category_id: category_id || null, // Optional field
+      location_id: location_id || null, // Optional field
+      status,
+      image_path,
+    });
+
+    res.status(201).json(listing);
+  } catch (err) {
+    console.error('Create Listing Error:', err);
+    if (err.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        error: 'Validation Error',
+        details: err.errors.map((e) => e.message),
+      });
+    }
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Get all listings
+router.get('/listings', async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+    const whereClause = categoryId ? { category_id: categoryId } : {};
+    const listings = await Listing.findAll({ where: whereClause });
+    res.status(200).json(listings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get a listing by ID
+router.get('/listings/:id', async (req, res) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id);
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+    res.status(200).json(listing);
+  } catch (err) {
+    console.error('Get Listing by ID Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update a listing
+router.put('/listings/:id', upload.single('image'), async (req, res) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id);
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const { title, description, price, status } = req.body;
+    const image_path = req.file ? `/uploads/listings/${req.file.filename}` : listing.image_path;
+
+    await listing.update({
+      title,
+      description,
+      price,
+      status,
+      image_path,
+    });
+
+    res.status(200).json(listing);
+  } catch (err) {
+    console.error('Update Listing Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete a listing
+router.delete('/listings/:id', async (req, res) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id);
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+    await listing.destroy();
+    res.status(200).json({ message: 'Listing deleted successfully' });
+  } catch (err) {
+    console.error('Delete Listing Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+module.exports = router;
