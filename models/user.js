@@ -1,8 +1,3 @@
-const { DataTypes } = require('sequelize');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-
 module.exports = (sequelize) => {
   const User = sequelize.define(
     'User',
@@ -58,12 +53,12 @@ module.exports = (sequelize) => {
       createdAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
-        field: 'createdAt',
+        field: 'created_at',
       },
       updatedAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
-        field: 'updatedAt',
+        field: 'updated_at',
       },
     },
     {
@@ -72,13 +67,23 @@ module.exports = (sequelize) => {
       paranoid: true,
       hooks: {
         beforeCreate: async (user) => {
-          if (user.password) {
-            user.password = await bcrypt.hash(user.password, 10);
+          try {
+            if (user.password) {
+              const saltRounds = 12;  // Adjust salt rounds for stronger security
+              user.password = await bcrypt.hash(user.password, saltRounds);
+            }
+          } catch (err) {
+            throw new Error('Error while hashing password during creation');
           }
         },
         beforeUpdate: async (user) => {
-          if (user.changed('password')) {
-            user.password = await bcrypt.hash(user.password, 10);
+          try {
+            if (user.changed('password')) {
+              const saltRounds = 12;  // Ensure to hash the new password with the same salt rounds
+              user.password = await bcrypt.hash(user.password, saltRounds);
+            }
+          } catch (err) {
+            throw new Error('Error while hashing password during update');
           }
         },
       },
@@ -97,7 +102,11 @@ module.exports = (sequelize) => {
 
   // Find user by email
   User.findByEmail = async function (email) {
-    return await this.findOne({ where: { email } });
+    const user = await this.findOne({ where: { email } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
   };
 
   // Verify email
@@ -114,7 +123,8 @@ module.exports = (sequelize) => {
   User.updatePassword = async function (userId, newPassword) {
     const user = await this.findByPk(userId);
     if (user) {
-      user.password = await bcrypt.hash(newPassword, 10);
+      const saltRounds = 12;
+      user.password = await bcrypt.hash(newPassword, saltRounds);
       await user.save();
     }
     return user;
@@ -127,11 +137,20 @@ module.exports = (sequelize) => {
 
   // Generate a JSON Web Token
   User.prototype.generateAuthToken = function () {
-    return jwt.sign(
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined in the environment variables');
+    }
+    const accessToken = jwt.sign(
       { id: this.id, email: this.email },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
+    const refreshToken = jwt.sign(
+      { id: this.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    return { accessToken, refreshToken };
   };
 
   return User;
