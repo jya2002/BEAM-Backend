@@ -36,18 +36,11 @@ module.exports = (sequelize) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    createdAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      onUpdate: DataTypes.NOW,
-    },
   }, {
     tableName: 'Categories', // Matches the table name in the database
-    timestamps: false,        // Disables automatic timestamp management by Sequelize
+    timestamps: true,        // Let Sequelize handle the timestamps
+    createdAt: 'created_at', // Custom field names for createdAt and updatedAt
+    updatedAt: 'updated_at',
   });
 
   // Define associations
