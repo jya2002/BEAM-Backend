@@ -85,36 +85,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Check database connection instead of syncing
+// Database connection check
 sequelize.authenticate()
   .then(() => console.log('Database connection established'))
   .catch(err => console.error('Unable to connect to the database:', err));
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Closing server...');
-  server.close(() => {
-    console.log('Server closed');
-    sequelize.close(() => {
-      console.log('Database connection closed');
-      process.exit(0);
-    });
-  });
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Closing server...');
-  server.close(() => {
-    console.log('Server closed');
-    sequelize.close(() => {
-      console.log('Database connection closed');
-      process.exit(0);
-    });
-  });
-});
+// Export the app for Vercel
+module.exports = app;
