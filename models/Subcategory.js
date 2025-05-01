@@ -1,6 +1,4 @@
-const { DataTypes } = require('sequelize');
-
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const Subcategory = sequelize.define('Subcategory', {
     subcategory_id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -44,23 +42,26 @@ module.exports = (sequelize) => {
     is_deleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
+      allowNull: false, // Explicitly set to false (matches the SQL schema)
     },
     created_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      allowNull: false, // Ensure it is not nullable, matches SQL schema
     },
     updated_at: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
+      allowNull: false, // Ensure it is not nullable, matches SQL schema
       onUpdate: DataTypes.NOW,
     },
   }, {
-    tableName: 'Subcategories', // Matches the SQL table name
-    timestamps: false, // Disables Sequelize's auto timestamps
+    tableName: 'Subcategories', // Explicit table name
+    timestamps: false,     // Disable automatic timestamps (use `created_at` and `updated_at` instead)
   });
 
-  // Define associations
-  Subcategory.associate = (models) => {
+  // Associations
+  Subcategory.associate = function (models) {
     // Association with Category
     Subcategory.belongsTo(models.Category, {
       foreignKey: 'category_id',

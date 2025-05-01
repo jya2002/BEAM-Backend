@@ -1,9 +1,7 @@
-const { DataTypes } = require('sequelize');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
-module.exports = (sequelize) => {
+module.exports = (sequelize, DataTypes) => {
   const User = sequelize.define(
     'User',
     {
@@ -36,9 +34,15 @@ module.exports = (sequelize) => {
         allowNull: false,
         unique: true,
         validate: {
-          is: /^[0-9]{9}$/, // Only 9 digits
+          is: /^[0-9]{9}$/, // 9 digits only
         },
-        comment: 'Last 9 digits of the phone number, assumes "+251" prefix.',
+        comment: 'Last 9 digits of the phone number (assumes +251).',
+      },
+      role: {
+        type: DataTypes.ENUM('user', 'employee', 'admin'),
+        allowNull: false,
+        defaultValue: 'user',
+        comment: 'User role for access control.',
       },
       is_verified: {
         type: DataTypes.BOOLEAN,
@@ -47,60 +51,57 @@ module.exports = (sequelize) => {
       },
       notification_token: {
         type: DataTypes.STRING(255),
-        defaultValue: null,
+        allowNull: true,
         comment: 'Token for push notifications.',
       },
       deletedAt: {
         type: DataTypes.DATE,
         allowNull: true,
-        comment: 'Timestamp for soft deletion of the user.',
+        comment: 'Soft delete timestamp.',
       },
       createdAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
-        field: 'createdAt',
+        field: 'created_at',
       },
       updatedAt: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW,
-        field: 'updatedAt',
+        field: 'updated_at',
       },
     },
     {
       tableName: 'Users',
       timestamps: true,
-      paranoid: true,
+      paranoid: true, // Enables soft deletes using deletedAt
       hooks: {
         beforeCreate: async (user) => {
           if (user.password) {
-            user.password = await bcrypt.hash(user.password, 10);
+            const saltRounds = 12;
+            user.password = await bcrypt.hash(user.password, saltRounds);
           }
         },
         beforeUpdate: async (user) => {
           if (user.changed('password')) {
-            user.password = await bcrypt.hash(user.password, 10);
+            const saltRounds = 12;
+            user.password = await bcrypt.hash(user.password, saltRounds);
           }
         },
       },
       indexes: [
-        {
-          unique: true,
-          fields: ['email'],
-        },
-        {
-          unique: true,
-          fields: ['phone_number'],
-        },
+        { unique: true, fields: ['email'] },
+        { unique: true, fields: ['phone_number'] },
       ],
     }
   );
 
-  // Find user by email
+  // STATIC METHODS
   User.findByEmail = async function (email) {
-    return await this.findOne({ where: { email } });
+    const user = await this.findOne({ where: { email } });
+    if (!user) throw new Error('User not found');
+    return user;
   };
 
-  // Verify email
   User.verifyEmail = async function (userId) {
     const user = await this.findByPk(userId);
     if (user) {
@@ -110,28 +111,38 @@ module.exports = (sequelize) => {
     return user;
   };
 
-  // Update password
   User.updatePassword = async function (userId, newPassword) {
     const user = await this.findByPk(userId);
     if (user) {
-      user.password = await bcrypt.hash(newPassword, 10);
+      user.password = await bcrypt.hash(newPassword, 12);
       await user.save();
     }
     return user;
   };
 
-  // Check if the provided password is valid
+  // INSTANCE METHODS
   User.prototype.isValidPassword = async function (plainPassword) {
     return await bcrypt.compare(plainPassword, this.password);
   };
 
-  // Generate a JSON Web Token
   User.prototype.generateAuthToken = function () {
-    return jwt.sign(
-      { id: this.id, email: this.email },
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
+
+    const accessToken = jwt.sign(
+      { id: this.id, email: this.email, role: this.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
+
+    const refreshToken = jwt.sign(
+      { id: this.id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    return { accessToken, refreshToken };
   };
 
   return User;

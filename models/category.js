@@ -26,50 +26,36 @@ module.exports = (sequelize) => {
     parent_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
-      references: {
-        model: 'Categories', // Self-referencing foreign key
-        key: 'category_id',
-      },
-      onDelete: 'SET NULL',
     },
     is_deleted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
-    createdAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
-      onUpdate: DataTypes.NOW,
-    },
   }, {
-    tableName: 'Categories', // Matches the table name in the database
-    timestamps: false,        // Disables automatic timestamp management by Sequelize
+    tableName: 'Categories',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
   });
 
-  // Define associations
   Category.associate = (models) => {
-    // Self-referencing association: A category can have a parent category
     Category.belongsTo(models.Category, {
       foreignKey: 'parent_id',
       as: 'parentCategory',
       onDelete: 'SET NULL',
     });
 
-    // Self-referencing association: A category can have child categories
     Category.hasMany(models.Category, {
       foreignKey: 'parent_id',
       as: 'childCategories',
     });
 
-    // Association with Subcategories: A category can have many subcategories
-    Category.hasMany(models.Subcategory, {
-      foreignKey: 'category_id',
-      onDelete: 'CASCADE',
-    });
+    if (models.Subcategory) {
+      Category.hasMany(models.Subcategory, {
+        foreignKey: 'category_id',
+        onDelete: 'CASCADE',
+      });
+    }
   };
 
   return Category;

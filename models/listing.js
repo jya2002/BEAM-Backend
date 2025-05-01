@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       references: {
-        model: 'Users', // Matches the table name
+        model: 'Users',
         key: 'id',
       },
     },
@@ -48,10 +48,16 @@ module.exports = (sequelize, DataTypes) => {
     price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+      validate: {
+        min: 0.01,  // Ensure price is greater than 0
+      },
     },
     image_path: {
       type: DataTypes.STRING,
       allowNull: true,
+      validate: {
+        isUrl: true,  // Optional: Validates that the image_path is a URL
+      },
     },
     status: {
       type: DataTypes.ENUM('available', 'sold', 'pending'),
@@ -63,9 +69,10 @@ module.exports = (sequelize, DataTypes) => {
     },
   }, {
     tableName: 'Listings',
-    timestamps: true, // Enables createdAt and updatedAt
+    timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    paranoid: true,  // Enable soft deletion
   });
 
   Listing.associate = (models) => {
@@ -93,6 +100,15 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'listing_id',
       onDelete: 'CASCADE',
     });
+  };
+
+  // Method to increment view count
+  Listing.incrementViewCount = async function(listingId) {
+    const listing = await this.findByPk(listingId);
+    if (listing) {
+      listing.view_count += 1;
+      await listing.save();
+    }
   };
 
   return Listing;

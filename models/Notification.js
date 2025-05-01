@@ -15,11 +15,19 @@ module.exports = (sequelize) => {
       type: DataTypes.ENUM('system', 'transaction', 'message', 'review'),
       allowNull: false,
     },
-    title: {
-      type: DataTypes.STRING,
+    title_am: {
+      type: DataTypes.STRING(255),
       allowNull: false,
     },
-    content: {
+    title_en: {
+      type: DataTypes.STRING(255),
+      allowNull: false,
+    },
+    content_am: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    content_en: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
@@ -27,13 +35,22 @@ module.exports = (sequelize) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
     },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
+    reference_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+    },
     sent_at: {
       type: DataTypes.DATE,
-      defaultValue: DataTypes.NOW,
+      allowNull: false,
+      defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
     },
   }, {
     tableName: 'Notifications',
-    timestamps: false, // Disable Sequelize's automatic timestamps if not needed
+    timestamps: false,
   });
 
   Notification.associate = (models) => {

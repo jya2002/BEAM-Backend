@@ -1,40 +1,67 @@
-module.exports = (sequelize, DataTypes) => {
-  const Message = sequelize.define('Message', {
-    content: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    is_read: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    message_type: {
-      type: DataTypes.ENUM('inquiry', 'negotiation', 'other'),
-      defaultValue: 'inquiry',
-    },
-    sent_at: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: sequelize.literal('CURRENT_TIMESTAMP'),
-    },
-  }, {
-    tableName: 'Messages', // Explicit table name
-    timestamps: true,       // Enable timestamp management (createdAt, updatedAt)
-  });
+const { Model, DataTypes } = require('sequelize');
 
-  // Associations
-  Message.associate = function(models) {
+module.exports = (sequelize) => {
+  class Message extends Model {}
+
+  Message.init(
+    {
+      message_id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
+      },
+      sender_id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+      },
+      receiver_id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        allowNull: false,
+      },
+      message_text: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      message_date: {
+        type: DataTypes.DATE,
+        allowNull: false
+      },
+      
+      is_read: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      is_deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      attachment_path: {
+        type: DataTypes.STRING(255),
+        defaultValue: null,
+      },
+    },
+    {
+      sequelize,
+      modelName: 'Message',
+      tableName: 'Messages',
+      timestamps: false, // No createdAt/updatedAt fields by default, same as your SQL
+    }
+  );
+
+  // Associations (for foreign keys)
+  Message.associate = (models) => {
     // A message belongs to a sender (User)
-    Message.belongsTo(models.User, { foreignKey: 'sender_id', onDelete: 'SET NULL' });
+    Message.belongsTo(models.User, {
+      foreignKey: 'sender_id',
+      as: 'sender', // Alias for the sender relationship
+    });
 
     // A message belongs to a receiver (User)
-    Message.belongsTo(models.User, { foreignKey: 'receiver_id', onDelete: 'SET NULL' });
-
-    // A message belongs to a listing
-    Message.belongsTo(models.Listing, { foreignKey: 'listing_id', onDelete: 'CASCADE' });
-
-    // A message belongs to a business listing
-    Message.belongsTo(models.BusinessListing, { foreignKey: 'business_listing_id', onDelete: 'CASCADE' });
+    Message.belongsTo(models.User, {
+      foreignKey: 'receiver_id',
+      as: 'receiver', // Alias for the receiver relationship
+    });
   };
 
   return Message;

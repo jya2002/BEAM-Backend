@@ -39,6 +39,11 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const BusinessProfileRoutes = require('./routes/BusinessProfileRoutes');
+const listingImagesRoutes = require('./routes/listingImagesRoutes');
+const BusinessListingImagesRoutes = require('./routes/BusinessListingImagesRoutes');
+const roleRequestsRoutes = require('./routes/roleRequestsRoutes');
 
 // Use the routes
 app.use('/api', userRoutes);
@@ -53,6 +58,11 @@ app.use('/api', transactionRoutes);
 app.use('/api', reviewRoutes);
 app.use('/api', locationRoutes);
 app.use('/api', notificationRoutes);
+app.use('/api', adminRoutes);
+app.use('/api', BusinessProfileRoutes);
+app.use('/api', listingImagesRoutes);
+app.use('/api', BusinessListingImagesRoutes);
+app.use('/api', roleRequestsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => res.status(200).json({ message: 'Server is healthy' }));
@@ -75,10 +85,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Sync the database
-sequelize.sync()
-  .then(() => console.log('Database synced!'))
-  .catch(err => console.error('Error syncing database:', err));
+// Check database connection instead of syncing
+sequelize.authenticate()
+  .then(() => console.log('Database connection established'))
+  .catch(err => console.error('Unable to connect to the database:', err));
 
 // Start the server
 const PORT = process.env.PORT || 3000;
