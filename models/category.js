@@ -32,12 +32,13 @@ module.exports = (sequelize) => {
       defaultValue: false,
     },
   }, {
-    tableName: 'Categories',
-    timestamps: true,
-    createdAt: 'created_at',
+    tableName: 'Categories', // Matches the table name in the database
+    timestamps: true,        // Let Sequelize handle the timestamps
+    createdAt: 'created_at', // Custom field names for createdAt and updatedAt
     updatedAt: 'updated_at',
   });
 
+  // Define associations
   Category.associate = (models) => {
     Category.belongsTo(models.Category, {
       foreignKey: 'parent_id',

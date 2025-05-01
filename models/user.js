@@ -76,15 +76,23 @@ module.exports = (sequelize, DataTypes) => {
       paranoid: true, // Enables soft deletes using deletedAt
       hooks: {
         beforeCreate: async (user) => {
-          if (user.password) {
-            const saltRounds = 12;
-            user.password = await bcrypt.hash(user.password, saltRounds);
+          try {
+            if (user.password) {
+              const saltRounds = 12;  // Adjust salt rounds for stronger security
+              user.password = await bcrypt.hash(user.password, saltRounds);
+            }
+          } catch (err) {
+            throw new Error('Error while hashing password during creation');
           }
         },
         beforeUpdate: async (user) => {
-          if (user.changed('password')) {
-            const saltRounds = 12;
-            user.password = await bcrypt.hash(user.password, saltRounds);
+          try {
+            if (user.changed('password')) {
+              const saltRounds = 12;  // Ensure to hash the new password with the same salt rounds
+              user.password = await bcrypt.hash(user.password, saltRounds);
+            }
+          } catch (err) {
+            throw new Error('Error while hashing password during update');
           }
         },
       },
@@ -98,7 +106,9 @@ module.exports = (sequelize, DataTypes) => {
   // STATIC METHODS
   User.findByEmail = async function (email) {
     const user = await this.findOne({ where: { email } });
-    if (!user) throw new Error('User not found');
+    if (!user) {
+      throw new Error('User not found');
+    }
     return user;
   };
 
@@ -114,7 +124,8 @@ module.exports = (sequelize, DataTypes) => {
   User.updatePassword = async function (userId, newPassword) {
     const user = await this.findByPk(userId);
     if (user) {
-      user.password = await bcrypt.hash(newPassword, 12);
+      const saltRounds = 12;
+      user.password = await bcrypt.hash(newPassword, saltRounds);
       await user.save();
     }
     return user;
@@ -127,15 +138,13 @@ module.exports = (sequelize, DataTypes) => {
 
   User.prototype.generateAuthToken = function () {
     if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET is not defined in environment variables');
+      throw new Error('JWT_SECRET is not defined in the environment variables');
     }
-
     const accessToken = jwt.sign(
-      { id: this.id, email: this.email, role: this.role },
+      { id: this.id, email: this.email },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-
     const refreshToken = jwt.sign(
       { id: this.id },
       process.env.JWT_SECRET,
