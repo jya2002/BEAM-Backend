@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 module.exports = (sequelize, DataTypes) => {
@@ -54,9 +54,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         comment: 'Token for push notifications.',
       },
+      refreshTokenVersion: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        allowNull: false,
+        comment: 'Used to invalidate refresh tokens globally.',
+      },
       deletedAt: {
         type: DataTypes.DATE,
         allowNull: true,
+        field: 'deleted_at',
         comment: 'Soft delete timestamp.',
       },
       createdAt: {
@@ -74,11 +81,15 @@ module.exports = (sequelize, DataTypes) => {
       tableName: 'Users',
       timestamps: true,
       paranoid: true, // Enables soft deletes using deletedAt
+      defaultScope: {
+        attributes: { exclude: ['password'] },
+      },
       hooks: {
         beforeCreate: async (user) => {
           try {
+            if (user.email) user.email = user.email.trim().toLowerCase();
             if (user.password) {
-              const saltRounds = 12;  // Adjust salt rounds for stronger security
+              const saltRounds = 12;
               user.password = await bcrypt.hash(user.password, saltRounds);
             }
           } catch (err) {
@@ -87,8 +98,11 @@ module.exports = (sequelize, DataTypes) => {
         },
         beforeUpdate: async (user) => {
           try {
+            if (user.changed('email')) {
+              user.email = user.email.trim().toLowerCase();
+            }
             if (user.changed('password')) {
-              const saltRounds = 12;  // Ensure to hash the new password with the same salt rounds
+              const saltRounds = 12;
               user.password = await bcrypt.hash(user.password, saltRounds);
             }
           } catch (err) {
@@ -105,10 +119,14 @@ module.exports = (sequelize, DataTypes) => {
 
   // STATIC METHODS
   User.findByEmail = async function (email) {
-    const user = await this.findOne({ where: { email } });
-    if (!user) {
-      throw new Error('User not found');
-    }
+    const user = await this.findOne({ where: { email: email.trim().toLowerCase() } });
+    if (!user) throw new Error('User not found');
+    return user;
+  };
+
+  User.findByPhone = async function (phone_number) {
+    const user = await this.findOne({ where: { phone_number } });
+    if (!user) throw new Error('User not found');
     return user;
   };
 
@@ -140,13 +158,15 @@ module.exports = (sequelize, DataTypes) => {
     if (!process.env.JWT_SECRET) {
       throw new Error('JWT_SECRET is not defined in the environment variables');
     }
+
     const accessToken = jwt.sign(
       { id: this.id, email: this.email },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
+
     const refreshToken = jwt.sign(
-      { id: this.id },
+      { id: this.id, version: this.refreshTokenVersion },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
