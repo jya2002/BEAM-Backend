@@ -1,7 +1,12 @@
 const sgMail = require('@sendgrid/mail');
 require('dotenv').config();
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const apiKey = process.env.SENDGRID_API_KEY;
+if (!apiKey || !apiKey.startsWith('SG.')) {
+  throw new Error('SENDGRID_API_KEY is missing or invalid. It must start with "SG."');
+}
+
+sgMail.setApiKey(apiKey);
 
 /**
  * Send verification email
@@ -12,16 +17,16 @@ const sendVerificationEmail = async (toEmail, token) => {
   try {
     const msg = {
       to: toEmail,
-      from: 'julia.alemu@gmail.com', // Your verified sender email
-      templateId: 'd-b524b402ce9d42fc9f48e7fd934c59f1', // SendGrid template ID for verification
+      from: 'julia.alemu@gmail.com', // Use a verified sender in SendGrid
+      templateId: 'd-b524b402ce9d42fc9f48e7fd934c59f1',
       dynamic_template_data: {
-        verificationUrl: `http://localhost:3000/api/verify-email?token=${token}`, // Replace with your frontend URL
+        verificationUrl: `http://localhost:3000/api/verify-email?token=${token}`, // Use your frontend domain in production
       },
     };
     await sgMail.send(msg);
-    console.log('Verification email sent successfully');
+    console.log('✅ Verification email sent to', toEmail);
   } catch (error) {
-    console.error('Error sending verification email:', error.response?.body || error.message);
+    console.error('❌ Error sending verification email:', error.response?.body || error.message);
     throw error;
   }
 };
@@ -35,21 +40,20 @@ const sendPasswordResetEmail = async (toEmail, token) => {
   try {
     const msg = {
       to: toEmail,
-      from: 'julia.alemu@gmail.com', // Your verified sender email
-      templateId: 'd-995440ed121d42ddba22ada73f0b48a3', // SendGrid template ID for password reset
+      from: 'julia.alemu@gmail.com', // Must match a verified sender in SendGrid
+      templateId: 'd-995440ed121d42ddba22ada73f0b48a3',
       dynamic_template_data: {
-        resetUrl: `http://localhost:3000/reset-password?token=${token}`, // Replace with your frontend URL
+        resetUrl: `http://localhost:3000/reset-password?token=${token}`,
       },
     };
     await sgMail.send(msg);
-    console.log('Password reset email sent successfully');
+    console.log('✅ Password reset email sent to', toEmail);
   } catch (error) {
-    console.error('Error sending password reset email:', error.response?.body || error.message);
+    console.error('❌ Error sending password reset email:', error.response?.body || error.message);
     throw error;
   }
 };
 
-// Export both functions
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
