@@ -8,12 +8,12 @@ require('dotenv').config(); // Load environment variables
 const app = express();
 
 // Middleware
-app.use(helmet()); // Adds security headers
-app.use(cors()); // Enables Cross-Origin Resource Sharing
-app.use(bodyParser.json()); // Parses JSON requests
-app.use(bodyParser.urlencoded({ extended: true })); // Parses URL-encoded requests
+console.log('Setting up middleware...');
+app.use(helmet());
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Logging and sanitization middleware
 app.use((req, res, next) => {
   for (const key in req.query) {
     if (typeof req.query[key] === 'string') {
@@ -23,10 +23,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files (e.g., uploads)
+// Static files
+console.log('Serving static files from /uploads...');
 app.use('/uploads', express.static('uploads'));
 
 // Route imports
+console.log('Importing routes...');
 const userRoutes = require('./routes/userRoutes');
 const listingRoutes = require('./routes/listingRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -46,6 +48,7 @@ const BusinessListingImagesRoutes = require('./routes/BusinessListingImagesRoute
 const roleRequestsRoutes = require('./routes/roleRequestsRoutes');
 
 // Use the routes
+console.log('Registering routes...');
 app.use('/api', userRoutes);
 app.use('/api', listingRoutes);
 app.use('/api', categoryRoutes);
@@ -65,14 +68,18 @@ app.use('/api', BusinessListingImagesRoutes);
 app.use('/api', roleRequestsRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => res.status(200).json({ message: 'Server is healthy' }));
+app.get('/health', (req, res) => {
+  console.log('/health endpoint hit');
+  res.status(200).json({ message: 'Server is healthy' });
+});
 
-// 404 Handler for unknown routes
+// 404 Handler
 app.use((req, res) => {
+  console.warn('404 - Route not found:', req.originalUrl);
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
   console.error('Error encountered:', err);
   if (err.name === 'SequelizeValidationError') {
@@ -85,10 +92,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Database connection check
+// DB connection
+console.log('Authenticating database connection...');
 sequelize.authenticate()
-  .then(() => console.log('Database connection established'))
-  .catch(err => console.error('Unable to connect to the database:', err));
+  .then(() => console.log('✅ Database connection established'))
+  .catch(err => console.error('❌ Unable to connect to the database:', err));
 
-// Export the app for Vercel
 module.exports = app;
