@@ -22,12 +22,12 @@ module.exports = {
         onUpdate: 'CASCADE',
       },
       listing_id: {
-        type: Sequelize.INTEGER.UNSIGNED,
-        allowNull: false,
-        references: {
-          model: 'Listings',
-          key: 'id',
-        },
+      type: Sequelize.INTEGER.UNSIGNED,
+      allowNull: false,
+      references: {
+        model: 'Listings',
+        key: 'listing_id', 
+      },
         onDelete: 'CASCADE',
         onUpdate: 'CASCADE',
       },
