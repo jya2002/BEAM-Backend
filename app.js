@@ -73,6 +73,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ message: 'Server is healthy' });
 });
 
+app.get('/', (req, res) => {
+  res.send('Beam backend is running!');
+});
+
 // 404 Handler
 app.use((req, res) => {
   console.warn('404 - Route not found:', req.originalUrl);
