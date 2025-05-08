@@ -1,3 +1,5 @@
+'use strict';
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
@@ -34,7 +36,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true,
         validate: {
-          is: /^[0-9]{9}$/, // 9 digits only
+          isNineDigits(value) {
+            if (!/^\d{9}$/.test(value)) {
+              throw new Error('Phone number must be exactly 9 digits.');
+            }
+          },
         },
         comment: 'Last 9 digits of the phone number (assumes +251).',
       },
@@ -60,6 +66,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         comment: 'Used to invalidate refresh tokens globally.',
       },
+      last_login_ip: {
+        type: DataTypes.STRING(45),
+        allowNull: true,
+        comment: 'IP address from the most recent login.',
+      },
       deletedAt: {
         type: DataTypes.DATE,
         allowNull: true,
@@ -80,7 +91,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       tableName: 'Users',
       timestamps: true,
-      paranoid: true, // Enables soft deletes using deletedAt
+      paranoid: true,
       defaultScope: {
         attributes: { exclude: ['password'] },
       },
@@ -113,21 +124,25 @@ module.exports = (sequelize, DataTypes) => {
       indexes: [
         { unique: true, fields: ['email'] },
         { unique: true, fields: ['phone_number'] },
+        { fields: ['is_verified'] },
       ],
     }
   );
 
+  // Remove sensitive fields like password before sending to client
+  User.prototype.toJSON = function () {
+    const values = { ...this.get() };
+    delete values.password;
+    return values;
+  };
+
   // STATIC METHODS
   User.findByEmail = async function (email) {
-    const user = await this.findOne({ where: { email: email.trim().toLowerCase() } });
-    if (!user) throw new Error('User not found');
-    return user;
+    return await this.findOne({ where: { email: email.trim().toLowerCase() } });
   };
 
   User.findByPhone = async function (phone_number) {
-    const user = await this.findOne({ where: { phone_number } });
-    if (!user) throw new Error('User not found');
-    return user;
+    return await this.findOne({ where: { phone_number } });
   };
 
   User.verifyEmail = async function (userId) {
@@ -171,7 +186,11 @@ module.exports = (sequelize, DataTypes) => {
       { expiresIn: '7d' }
     );
 
-    return { accessToken, refreshToken };
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: 3600, // in seconds (1h)
+    };
   };
 
   return User;
