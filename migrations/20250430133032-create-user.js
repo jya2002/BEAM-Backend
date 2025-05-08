@@ -19,9 +19,6 @@ module.exports = {
         type: Sequelize.STRING(100),
         allowNull: false,
         unique: true,
-        validate: {
-          isEmail: true,
-        },
         comment: 'User email, must be unique.',
       },
       password: {
@@ -33,9 +30,6 @@ module.exports = {
         type: Sequelize.CHAR(9),
         allowNull: false,
         unique: true,
-        validate: {
-          is: /^[0-9]{9}$/, // 9 digits only
-        },
         comment: 'Last 9 digits of the phone number (assumes +251).',
       },
       role: {
@@ -54,29 +48,41 @@ module.exports = {
         allowNull: true,
         comment: 'Token for push notifications.',
       },
+      refreshTokenVersion: {
+        type: Sequelize.INTEGER,
+        defaultValue: 0,
+        comment: 'Versioning to invalidate old refresh tokens.',
+      },
+      last_login_ip: {
+        type: Sequelize.STRING(45),
+        allowNull: true,
+        comment: 'IP address from the most recent login.',
+      },
       deletedAt: {
         type: Sequelize.DATE,
         allowNull: true,
         comment: 'Soft delete timestamp.',
       },
-      createdAt: {
+      created_at: {
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW,
-        field: 'created_at',
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
-      updatedAt: {
+      updated_at: {
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW,
-        field: 'updated_at',
+        allowNull: false,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
       },
     });
 
     // Add indexes
     await queryInterface.addIndex('Users', ['email'], { unique: true });
     await queryInterface.addIndex('Users', ['phone_number'], { unique: true });
+    await queryInterface.addIndex('Users', ['is_verified']);
   },
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Users');
   },
 };
+
