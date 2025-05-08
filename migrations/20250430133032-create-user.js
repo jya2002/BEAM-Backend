@@ -1,7 +1,6 @@
 'use strict';
 
 /** @type {import('sequelize-cli').Migration} */
-
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('Users', {
@@ -50,15 +49,16 @@ module.exports = {
       },
       refreshTokenVersion: {
         type: Sequelize.INTEGER,
+        allowNull: false,
         defaultValue: 0,
-        comment: 'Versioning to invalidate old refresh tokens.',
+        comment: 'Used to invalidate refresh tokens globally.',
       },
       last_login_ip: {
         type: Sequelize.STRING(45),
         allowNull: true,
         comment: 'IP address from the most recent login.',
       },
-      deletedAt: {
+      deleted_at: {
         type: Sequelize.DATE,
         allowNull: true,
         comment: 'Soft delete timestamp.',
@@ -71,11 +71,11 @@ module.exports = {
       updated_at: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'),
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
 
-    // Add indexes
+    // Indexes
     await queryInterface.addIndex('Users', ['email'], { unique: true });
     await queryInterface.addIndex('Users', ['phone_number'], { unique: true });
     await queryInterface.addIndex('Users', ['is_verified']);
@@ -83,6 +83,7 @@ module.exports = {
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Users');
+    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_Users_role";');
   },
 };
 
