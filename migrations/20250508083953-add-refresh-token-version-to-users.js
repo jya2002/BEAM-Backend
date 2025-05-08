@@ -1,15 +1,17 @@
 'use strict';
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  up: async (queryInterface, Sequelize) => {
     await queryInterface.addColumn('Users', 'refreshTokenVersion', {
       type: Sequelize.INTEGER,
-      allowNull: false,
       defaultValue: 0,
+      allowNull: false,
+      comment: 'Used to invalidate refresh tokens globally.',
     });
   },
 
-  async down(queryInterface, Sequelize) {
+  down: async (queryInterface, Sequelize) => {
     await queryInterface.removeColumn('Users', 'refreshTokenVersion');
-  }
+  },
 };
+
