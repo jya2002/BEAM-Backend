@@ -64,6 +64,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
         allowNull: false,
+        field: 'refreshTokenVersion', // <-- Force Sequelize to map it
         comment: 'Used to invalidate refresh tokens globally.',
       },
       last_login_ip: {
