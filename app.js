@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 
 // Static files
 console.log('Serving static files from /uploads...');
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Route imports
 console.log('Importing routes...');
