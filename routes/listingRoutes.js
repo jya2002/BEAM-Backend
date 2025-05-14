@@ -4,38 +4,8 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { Listing } = require('../models');
-
-// Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '../uploads/listings');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Configure Multer storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir); // Save images in the uploads/listings directory
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); // Rename file with timestamp
-  },
-});
-
-// File filter to accept only images
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
-
-// Create Multer instance
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
-});
+const upload = createUpload('listings'); 
+const createUpload = require('../middleware/upload');
 
 // Create a new listing with image upload
 router.post('/listings', upload.single('image'), async (req, res) => {
