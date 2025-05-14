@@ -1,4 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
+  console.log('✅ Listing model loaded');
   const Listing = sequelize.define('Listing', {
     listing_id: {
       type: DataTypes.INTEGER.UNSIGNED,
