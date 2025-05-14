@@ -8,12 +8,11 @@ const createUpload = require('../middleware/upload');
 const upload = createUpload('listings'); 
 
 
-// Create a new listing with image upload
 router.post('/listings', upload.single('image'), async (req, res) => {
-   try {
+  try {
     console.log('Incoming request body:', req.body);
     console.log('Uploaded file info:', req.file);
-     
+
     const {
       title_am,
       title_en,
