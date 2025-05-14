@@ -4,8 +4,9 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { Listing } = require('../models');
-const upload = createUpload('listings'); 
 const createUpload = require('../middleware/upload');
+const upload = createUpload('listings'); 
+
 
 // Create a new listing with image upload
 router.post('/listings', upload.single('image'), async (req, res) => {
