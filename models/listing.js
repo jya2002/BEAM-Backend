@@ -68,11 +68,12 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0,
     },
   }, {
-    tableName: 'Listings',
-    timestamps: true,
-    createdAt: 'created_at',
-    updatedAt: 'updated_at',
-    paranoid: true,  // Enable soft deletion
+  tableName: 'Listings',
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  paranoid: true,
+  deletedAt: 'deleted_at', // 👈 tell Sequelize the name in the DB, Enable soft deletion
   });
 
   Listing.associate = (models) => {
