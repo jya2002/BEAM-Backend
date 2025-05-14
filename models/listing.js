@@ -67,6 +67,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
     },
+     deleted_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   }, {
   tableName: 'Listings',
   timestamps: true,
