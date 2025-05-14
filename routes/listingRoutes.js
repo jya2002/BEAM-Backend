@@ -40,24 +40,36 @@ const upload = multer({
 // Create a new listing with image upload
 router.post('/listings', upload.single('image'), async (req, res) => {
   try {
-    const { title, description, price, user_id, category_id, location_id, status } = req.body;
+    const {
+      title_am,
+      title_en,
+      description_am,
+      description_en,
+      price,
+      user_id,
+      category_id,
+      location_id,
+      status,
+    } = req.body;
 
     // Validate required fields
-    if (!title || !description || !price || !user_id || !status) {
+    if (!title_am || !title_en || !description_am || !description_en || !price || !user_id || !status) {
       return res.status(400).json({
-        error: 'Missing required fields: title, description, price, user_id, or status',
+        error: 'Missing required fields: title_am, title_en, description_am, description_en, price, user_id, or status',
       });
     }
 
     const image_path = req.file ? `/uploads/listings/${req.file.filename}` : null;
 
     const listing = await Listing.create({
-      title,
-      description,
+      title_am,
+      title_en,
+      description_am,
+      description_en,
       price,
       user_id,
-      category_id: category_id || null, // Optional field
-      location_id: location_id || null, // Optional field
+      category_id: category_id || null,
+      location_id: location_id || null,
       status,
       image_path,
     });
@@ -74,6 +86,7 @@ router.post('/listings', upload.single('image'), async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 // Get all listings
 router.get('/listings', async (req, res) => {
@@ -109,12 +122,22 @@ router.put('/listings/:id', upload.single('image'), async (req, res) => {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
-    const { title, description, price, status } = req.body;
+    const {
+      title_am,
+      title_en,
+      description_am,
+      description_en,
+      price,
+      status,
+    } = req.body;
+
     const image_path = req.file ? `/uploads/listings/${req.file.filename}` : listing.image_path;
 
     await listing.update({
-      title,
-      description,
+      title_am,
+      title_en,
+      description_am,
+      description_en,
       price,
       status,
       image_path,
@@ -123,9 +146,16 @@ router.put('/listings/:id', upload.single('image'), async (req, res) => {
     res.status(200).json(listing);
   } catch (err) {
     console.error('Update Listing Error:', err);
+    if (err.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        error: 'Validation Error',
+        details: err.errors.map((e) => e.message),
+      });
+    }
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Delete a listing
 router.delete('/listings/:id', async (req, res) => {
