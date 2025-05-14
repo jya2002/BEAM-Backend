@@ -1,5 +1,4 @@
 module.exports = (sequelize, DataTypes) => {
-  console.log('✅ Listing model loaded');
   const Listing = sequelize.define('Listing', {
     listing_id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -67,10 +66,6 @@ module.exports = (sequelize, DataTypes) => {
     view_count: {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
-    },
-     deleted_at: {
-      type: DataTypes.DATE,
-      allowNull: true,
     },
   }, {
   tableName: 'Listings',
