@@ -73,8 +73,9 @@ module.exports = (sequelize, DataTypes) => {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   paranoid: true,
-  deletedAt: 'deleted_at', // 👈 tell Sequelize the name in the DB, Enable soft deletion
-  });
+  deletedAt: 'deleted_at',
+  underscored: true, // 👈 ADD THIS
+});
 
   Listing.associate = (models) => {
     Listing.belongsTo(models.User, {
