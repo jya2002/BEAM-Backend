@@ -49,12 +49,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       validate: {
-        min: 0.01,  // Ensure price is greater than 0
+        min: 0.01,
       },
     },
     image_path: {
       type: DataTypes.STRING,
       allowNull: true,
+      comment: 'Optional: single image preview (e.g. cover)',
     },
     status: {
       type: DataTypes.ENUM('available', 'sold', 'pending'),
@@ -65,44 +66,54 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0,
     },
   }, {
-  tableName: 'Listings',
-  timestamps: true,
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
-  paranoid: true,
-  deletedAt: 'deleted_at',
-  underscored: true, // 👈 ADD THIS
-});
+    tableName: 'Listings',
+    timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    deletedAt: 'deleted_at',
+    paranoid: true,
+    underscored: true,
+  });
 
   Listing.associate = (models) => {
     Listing.belongsTo(models.User, {
       foreignKey: 'user_id',
       onDelete: 'CASCADE',
     });
+
     Listing.belongsTo(models.Category, {
       foreignKey: 'category_id',
       onDelete: 'SET NULL',
     });
+
     Listing.belongsTo(models.Location, {
       foreignKey: 'location_id',
       onDelete: 'SET NULL',
     });
+
     Listing.hasMany(models.Transaction, {
       foreignKey: 'listing_id',
       onDelete: 'CASCADE',
     });
+
     Listing.hasMany(models.Message, {
       foreignKey: 'listing_id',
       onDelete: 'CASCADE',
     });
+
     Listing.hasMany(models.Favorite, {
+      foreignKey: 'listing_id',
+      onDelete: 'CASCADE',
+    });
+
+    Listing.hasMany(models.ListingImage, {
       foreignKey: 'listing_id',
       onDelete: 'CASCADE',
     });
   };
 
-  // Method to increment view count
-  Listing.incrementViewCount = async function(listingId) {
+  // Helper method: increment view count
+  Listing.incrementViewCount = async function (listingId) {
     const listing = await this.findByPk(listingId);
     if (listing) {
       listing.view_count += 1;
