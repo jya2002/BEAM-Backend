@@ -55,9 +55,6 @@ module.exports = (sequelize, DataTypes) => {
     image_path: {
       type: DataTypes.STRING,
       allowNull: true,
-      validate: {
-        isUrl: true,  // Optional: Validates that the image_path is a URL
-      },
     },
     status: {
       type: DataTypes.ENUM('available', 'sold', 'pending'),
