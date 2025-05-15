@@ -35,22 +35,22 @@ router.post('/listings', upload.single('image'), async (req, res) => {
 
     // Construct full URL if needed for Sequelize's isUrl validation
     const image_path = req.file
-      ? `${req.protocol}://${req.get('host')}/uploads/listings/${req.file.filename}`
-      : null;
+  ? `${req.protocol}://${req.get('host')}/uploads/listings/${req.file.filename}`
+  : null;
 
-    // Now actually create the listing
-    const listing = await Listing.create({
-      title_am,
-      title_en,
-      description_am,
-      description_en,
-      price,
-      user_id,
-      category_id: category_id || null,
-      location_id: location_id || null,
-      status,
-      image_path,
-    });
+const listing = await Listing.create({
+  title_am,
+  title_en,
+  description_am,
+  description_en,
+  price,
+  user_id,
+  category_id: category_id || null,
+  location_id: location_id || null,
+  status,
+  image_path,
+});
+
 
     res.status(201).json(listing);
   } catch (err) {
