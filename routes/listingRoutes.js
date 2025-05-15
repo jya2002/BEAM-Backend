@@ -9,12 +9,10 @@ const upload = createUpload('listings');
 
 
 
-router.post('/listings', (req, res, next) => {
-  console.log('Content-Type:', req.headers['content-type']);
-  next();
-}, upload.single('image'), async (req, res) => {
-  console.log('req.body:', req.body);
-  console.log('req.file:', req.file);
+const createUpload = require('../middleware/createUpload');
+const upload = createUpload('listings');
+
+router.post('/listings', upload.array('images', 10), listingController.createListing);
 
     const {
       title_am,
