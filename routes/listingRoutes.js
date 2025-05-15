@@ -33,6 +33,22 @@ router.post('/listings', upload.single('image'), async (req, res) => {
     }
 
     const image_path = req.file ? `/uploads/listings/${req.file.filename}` : null;
+    return res.json({
+  received: {
+    title_am,
+    title_en,
+    description_am,
+    description_en,
+    price,
+    user_id,
+    status,
+    category_id,
+    location_id,
+    image_path,
+  },
+  rawBody: req.body,
+});
+
 
     const listing = await Listing.create({
       title_am,
