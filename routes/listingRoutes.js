@@ -9,10 +9,12 @@ const upload = createUpload('listings');
 
 
 
-router.post('/listings', upload.single('image'), async (req, res) => {
-  try {
-    console.log('Incoming request body:', req.body);
-    console.log('Uploaded file info:', req.file);
+router.post('/listings', (req, res, next) => {
+  console.log('Content-Type:', req.headers['content-type']);
+  next();
+}, upload.single('image'), async (req, res) => {
+  console.log('req.body:', req.body);
+  console.log('req.file:', req.file);
 
     const {
       title_am,
