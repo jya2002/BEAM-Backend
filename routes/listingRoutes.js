@@ -7,6 +7,8 @@ const { Listing } = require('../models');
 const createUpload = require('../middleware/upload');
 const upload = createUpload('listings'); 
 
+
+
 router.post('/listings', upload.single('image'), async (req, res) => {
   try {
     console.log('Incoming request body:', req.body);
@@ -31,12 +33,12 @@ router.post('/listings', upload.single('image'), async (req, res) => {
       });
     }
 
-    // Construct full image URL if file is uploaded
+    // Construct full URL if needed for Sequelize's isUrl validation
     const image_path = req.file
       ? `${req.protocol}://${req.get('host')}/uploads/listings/${req.file.filename}`
       : null;
 
-    // Create new listing
+    // Now actually create the listing
     const listing = await Listing.create({
       title_am,
       title_en,
@@ -53,12 +55,17 @@ router.post('/listings', upload.single('image'), async (req, res) => {
     res.status(201).json(listing);
   } catch (err) {
     console.error('Create Listing Error:', err);
+    console.error('Request Body:', req.body);
+    console.error('Uploaded File:', req.file);
+
     if (err.name === 'SequelizeValidationError') {
+      console.error('Validation Details:', err.errors);
       return res.status(400).json({
         error: 'Validation Error',
         details: err.errors.map((e) => e.message),
       });
     }
+
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
