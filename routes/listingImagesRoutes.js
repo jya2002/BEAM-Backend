@@ -1,7 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const createUpload = require('../middleware/createUpload');
+const createUpload = require('../middleware/upload');
 const { Listing, ListingImage } = require('../models');
 
 const router = express.Router();
