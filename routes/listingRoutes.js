@@ -6,7 +6,7 @@ const listingController = require('../controllers/listingController');
 const upload = createUpload('listings');
 
 // Create listing with images
-router.post('/listings', upload.array('images', 10), listingController.createListing);
+router.post('/listings', upload.array('images', 5), listingController.createListing);
 
 // Get all listings (optionally filtered by categoryId)
 router.get('/listings', listingController.getAllListings);
