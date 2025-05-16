@@ -1,54 +1,157 @@
 const { Listing, ListingImage } = require('../models');
+const fs = require('fs');
 const path = require('path');
 
 exports.createListing = async (req, res) => {
   const {
+    title_am,
+    title_en,
+    description_am,
+    description_en,
+    price,
     user_id,
     category_id,
-    subcategory_id,
     location_id,
-    title_en,
-    title_am,
-    description_en,
-    description_am,
-    price,
-    status
+    status,
   } = req.body;
 
+  if (!title_am || !title_en || !description_am || !description_en || !price || !user_id || !status) {
+    return res.status(400).json({
+      error: 'Missing required fields: title_am, title_en, description_am, description_en, price, user_id, or status',
+    });
+  }
+
   try {
-    // 1. Create the listing
     const listing = await Listing.create({
-      user_id,
-      category_id,
-      subcategory_id,
-      location_id,
-      title_en,
       title_am,
-      description_en,
+      title_en,
       description_am,
+      description_en,
       price,
-      status
+      user_id,
+      category_id: category_id || null,
+      location_id: location_id || null,
+      status,
     });
 
-    // 2. Upload images
-    const images = await Promise.all(
-      req.files.map(file =>
-        ListingImage.create({
-          listing_id: listing.id,
-          image_path: `/uploads/listings/${file.filename}`,
-        })
-      )
-    );
+    if (req.files && req.files.length > 0) {
+      const images = req.files.map((file) => ({
+        listing_id: listing.id,
+        image_path: `/uploads/listings/${file.filename}`,
+      }));
 
-    // 3. Respond
-    res.status(201).json({
-      message: 'Listing created successfully',
-      listing,
-      images
+      await ListingImage.bulkCreate(images);
+    }
+
+    res.status(201).json({ message: 'Listing created successfully', listing });
+  } catch (err) {
+    console.error('Create Listing Error:', err);
+    if (err.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        error: 'Validation Error',
+        details: err.errors.map((e) => e.message),
+      });
+    }
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+exports.getAllListings = async (req, res) => {
+  try {
+    const { categoryId } = req.query;
+    const whereClause = categoryId ? { category_id: categoryId } : {};
+    const listings = await Listing.findAll({ where: whereClause });
+    res.status(200).json(listings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getListingById = async (req, res) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id, {
+      include: [ListingImage],
     });
-  } catch (error) {
-    console.error('Error creating listing:', error);
-    res.status(500).json({ message: 'Error creating listing', error: error.message });
+
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    res.status(200).json(listing);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateListing = async (req, res) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id);
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    const {
+      title_am,
+      title_en,
+      description_am,
+      description_en,
+      price,
+      status,
+    } = req.body;
+
+    await listing.update({
+      title_am,
+      title_en,
+      description_am,
+      description_en,
+      price,
+      status,
+    });
+
+    if (req.file) {
+      const image_path = `/uploads/listings/${req.file.filename}`;
+      await ListingImage.create({
+        listing_id: listing.id,
+        image_path,
+      });
+    }
+
+    res.status(200).json({ message: 'Listing updated successfully', listing });
+  } catch (err) {
+    console.error('Update Listing Error:', err);
+    if (err.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        error: 'Validation Error',
+        details: err.errors.map((e) => e.message),
+      });
+    }
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteListing = async (req, res) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id, {
+      include: [ListingImage],
+    });
+
+    if (!listing) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    for (const image of listing.ListingImages || []) {
+      const filePath = path.join(__dirname, '..', image.image_path);
+      fs.unlink(filePath, (err) => {
+        if (err && err.code !== 'ENOENT') {
+          console.error(`Failed to delete image file: ${filePath}`, err);
+        }
+      });
+    }
+
+    await listing.destroy();
+    res.status(200).json({ message: 'Listing deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
