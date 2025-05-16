@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const createUpload = require('../middleware/createUpload');
+const createUpload = require('../middleware/upload');
 const listingController = require('../controllers/listingController');
 
 const upload = createUpload('listings');
