@@ -65,7 +65,7 @@ app.use('/api', locationRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', BusinessProfileRoutes);
-app.use('/api', listingImagesRoutes);
+app.use('/api/Images', listingImagesRoutes);
 app.use('/api', BusinessListingImagesRoutes);
 app.use('/api', roleRequestsRoutes);
 
