@@ -46,7 +46,7 @@ router.post('/add', upload.single('image'), async (req, res) => {
 // ----------------------------------------------------
 // Upload multiple images for a listing
 // ----------------------------------------------------
-router.post('/add-multiple', upload.array('images', 10), async (req, res) => {
+router.post('/add-multiple', upload.array('images', 5), async (req, res) => {
   const { listing_id } = req.body;
 
   if (!req.files || req.files.length === 0) {
