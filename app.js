@@ -4,6 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const { sequelize } = require('./models');
 require('dotenv').config(); // Load environment variables
+const path = require('path');
+
 
 const app = express();
 
