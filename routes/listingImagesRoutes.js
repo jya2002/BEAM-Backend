@@ -46,12 +46,12 @@ router.post('/add', upload.single('image'), async (req, res) => {
 // -------------------------
 // Upload multiple images
 // -------------------------
-router.post('/add-multiple', upload.array('images', 10), async (req, res) => {
-  const { listing_id } = req.body;
-
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ message: 'No images uploaded' });
-  }
+router.post('/add-multiple', (req, res, next) => {
+  console.log('FIELDNAMES RECEIVED:', req.body, req.files); // See fields & files
+  next();
+}, upload.array('images', 10), async (req, res) => {
+  // ...
+});
 
   try {
     const listing = await Listing.findByPk(listing_id);
