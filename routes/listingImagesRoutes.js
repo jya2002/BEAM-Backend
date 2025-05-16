@@ -1,20 +1,20 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const createUpload = require('../utils/createUpload');
-const { ListingImage, Listing } = require('../models');
+const createUpload = require('../middleware/createUpload');
+const { Listing, ListingImage } = require('../models');
 
 const router = express.Router();
 const upload = createUpload('listings');
 
-// Helper to build full image URL (optional)
+// Helper to build full image URL
 const getImageUrl = (req, filename) => {
   return `${req.protocol}://${req.get('host')}/uploads/listings/${filename}`;
 };
 
-// ---------------------
-// Upload a single image
-// ---------------------
+// ----------------------------------------------------
+// Upload a single image for a listing
+// ----------------------------------------------------
 router.post('/add', upload.single('image'), async (req, res) => {
   const { listing_id } = req.body;
 
@@ -43,15 +43,15 @@ router.post('/add', upload.single('image'), async (req, res) => {
   }
 });
 
-// -------------------------
-// Upload multiple images
-// -------------------------
-router.post('/add-multiple', (req, res, next) => {
-  console.log('FIELDNAMES RECEIVED:', req.body, req.files); // See fields & files
-  next();
-}, upload.array('images', 10), async (req, res) => {
-  // ...
-});
+// ----------------------------------------------------
+// Upload multiple images for a listing
+// ----------------------------------------------------
+router.post('/add-multiple', upload.array('images', 10), async (req, res) => {
+  const { listing_id } = req.body;
+
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: 'No image files uploaded' });
+  }
 
   try {
     const listing = await Listing.findByPk(listing_id);
@@ -80,9 +80,9 @@ router.post('/add-multiple', (req, res, next) => {
   }
 });
 
-// --------------------------
+// ----------------------------------------------------
 // Delete an image by ID
-// --------------------------
+// ----------------------------------------------------
 router.delete('/delete/:image_id', async (req, res) => {
   const { image_id } = req.params;
 
@@ -107,4 +107,5 @@ router.delete('/delete/:image_id', async (req, res) => {
 });
 
 module.exports = router;
+
 
