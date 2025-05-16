@@ -2,6 +2,18 @@ const { Listing, ListingImage } = require('../models');
 const fs = require('fs');
 const path = require('path');
 
+// Helper to delete image files safely
+const deleteImageFile = (filePath) => {
+  fs.unlink(filePath, (err) => {
+    if (err && err.code !== 'ENOENT') {
+      console.error(`Failed to delete image: ${filePath}`, err);
+    }
+  });
+};
+
+// ----------------------------------------------------
+// Create Listing
+// ----------------------------------------------------
 exports.createListing = async (req, res) => {
   const {
     title_am,
@@ -34,12 +46,12 @@ exports.createListing = async (req, res) => {
       status,
     });
 
-    if (req.files && req.files.length > 0) {
-      const images = req.files.map((file) => ({
+    // Save images if provided
+    if (req.files?.length > 0) {
+      const images = req.files.map(file => ({
         listing_id: listing.id,
         image_path: `/uploads/listings/${file.filename}`,
       }));
-
       await ListingImage.bulkCreate(images);
     }
 
@@ -49,24 +61,36 @@ exports.createListing = async (req, res) => {
     if (err.name === 'SequelizeValidationError') {
       return res.status(400).json({
         error: 'Validation Error',
-        details: err.errors.map((e) => e.message),
+        details: err.errors.map(e => e.message),
       });
     }
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
 
+// ----------------------------------------------------
+// Get All Listings
+// ----------------------------------------------------
 exports.getAllListings = async (req, res) => {
   try {
     const { categoryId } = req.query;
     const whereClause = categoryId ? { category_id: categoryId } : {};
-    const listings = await Listing.findAll({ where: whereClause });
+
+    const listings = await Listing.findAll({
+      where: whereClause,
+      include: [ListingImage],
+      order: [['createdAt', 'DESC']],
+    });
+
     res.status(200).json(listings);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
+// ----------------------------------------------------
+// Get Listing by ID
+// ----------------------------------------------------
 exports.getListingById = async (req, res) => {
   try {
     const listing = await Listing.findByPk(req.params.id, {
@@ -83,6 +107,9 @@ exports.getListingById = async (req, res) => {
   }
 };
 
+// ----------------------------------------------------
+// Update Listing
+// ----------------------------------------------------
 exports.updateListing = async (req, res) => {
   try {
     const listing = await Listing.findByPk(req.params.id);
@@ -108,11 +135,11 @@ exports.updateListing = async (req, res) => {
       status,
     });
 
+    // Optional: Add new image
     if (req.file) {
-      const image_path = `/uploads/listings/${req.file.filename}`;
       await ListingImage.create({
         listing_id: listing.id,
-        image_path,
+        image_path: `/uploads/listings/${req.file.filename}`,
       });
     }
 
@@ -122,13 +149,16 @@ exports.updateListing = async (req, res) => {
     if (err.name === 'SequelizeValidationError') {
       return res.status(400).json({
         error: 'Validation Error',
-        details: err.errors.map((e) => e.message),
+        details: err.errors.map(e => e.message),
       });
     }
     res.status(500).json({ error: err.message });
   }
 };
 
+// ----------------------------------------------------
+// Delete Listing
+// ----------------------------------------------------
 exports.deleteListing = async (req, res) => {
   try {
     const listing = await Listing.findByPk(req.params.id, {
@@ -139,13 +169,10 @@ exports.deleteListing = async (req, res) => {
       return res.status(404).json({ error: 'Listing not found' });
     }
 
+    // Delete associated images from filesystem
     for (const image of listing.ListingImages || []) {
-      const filePath = path.join(__dirname, '..', image.image_path);
-      fs.unlink(filePath, (err) => {
-        if (err && err.code !== 'ENOENT') {
-          console.error(`Failed to delete image file: ${filePath}`, err);
-        }
-      });
+      const imagePath = path.join(__dirname, '..', image.image_path.replace(/^\/+/, ''));
+      deleteImageFile(imagePath);
     }
 
     await listing.destroy();
