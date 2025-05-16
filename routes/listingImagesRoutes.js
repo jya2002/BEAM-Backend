@@ -1,11 +1,13 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const createUpload = require('../middleware/upload');
 const { Listing, ListingImage } = require('../models');
+const createUpload = require('../middleware/upload');
 
 const router = express.Router();
-const upload = createUpload('listings');
+
+const uploadSingle = createUpload('listings').single('image');
+const uploadMultiple = createUpload('listings').array('images', 5);
 
 // Helper to build full image URL
 const getImageUrl = (req, filename) => {
@@ -15,7 +17,7 @@ const getImageUrl = (req, filename) => {
 // ----------------------------------------------------
 // Upload a single image for a listing
 // ----------------------------------------------------
-router.post('/add', upload.single('image'), async (req, res) => {
+router.post('/add', uploadSingle, async (req, res) => {
   const { listing_id } = req.body;
 
   if (!req.file) {
@@ -46,7 +48,7 @@ router.post('/add', upload.single('image'), async (req, res) => {
 // ----------------------------------------------------
 // Upload multiple images for a listing
 // ----------------------------------------------------
-router.post('/add-multiple', upload.array('images', 5), async (req, res) => {
+router.post('/add-multiple', uploadMultiple, async (req, res) => {
   const { listing_id } = req.body;
 
   if (!req.files || req.files.length === 0) {
@@ -92,8 +94,9 @@ router.delete('/delete/:image_id', async (req, res) => {
       return res.status(404).json({ message: 'Image not found' });
     }
 
-    const filePath = path.join(__dirname, '..', image.image_path);
-    fs.unlink(filePath, async (err) => {
+    const imagePath = path.join(__dirname, '..', image.image_path.startsWith('/') ? image.image_path.slice(1) : image.image_path);
+
+    fs.unlink(imagePath, async (err) => {
       if (err && err.code !== 'ENOENT') {
         return res.status(500).json({ message: 'Error deleting image file', error: err.message });
       }
@@ -107,5 +110,3 @@ router.delete('/delete/:image_id', async (req, res) => {
 });
 
 module.exports = router;
-
-
