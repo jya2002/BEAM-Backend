@@ -13,27 +13,35 @@ const deleteImageFile = (filePath) => {
 exports.createListing = async (req, res) => {
   const {
     title_am, title_en, description_am, description_en,
-    price, user_id, category_id, location_id, status
+    price, user_id, category_id, subcategory_id, location_id, status
   } = req.body;
 
+  // Basic validation (optional: you can require subcategory_id if needed)
   if (!title_am || !title_en || !description_am || !description_en || !price || !user_id || !status) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
     const listing = await Listing.create({
-      title_am, title_en, description_am, description_en,
-      price, user_id, category_id: category_id || null,
-      location_id: location_id || null, status
+      title_am,
+      title_en,
+      description_am,
+      description_en,
+      price,
+      user_id,
+      category_id: category_id || null,
+      subcategory_id: subcategory_id || null,  // ✅ Included here
+      location_id: location_id || null,
+      status
     });
 
     if (req.files?.length > 0) {
-  const images = req.files.map(file => ({
-    listing_id: listing.listing_id, // 👈 Fix this
-    image_path: `/uploads/listings/${file.filename}`,
-  }));
-  await ListingImage.bulkCreate(images);
-}
+      const images = req.files.map(file => ({
+        listing_id: listing.listing_id, // ensure this matches your DB primary key name
+        image_path: `/uploads/listings/${file.filename}`,
+      }));
+      await ListingImage.bulkCreate(images);
+    }
 
     res.status(201).json({ message: 'Listing created successfully', listing });
   } catch (err) {
@@ -41,6 +49,7 @@ exports.createListing = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
+
 
 exports.getAllListings = async (req, res) => {
   try {
