@@ -29,6 +29,16 @@ module.exports = {
         onDelete: 'SET NULL',
         onUpdate: 'CASCADE',
       },
+      subcategory_id: {
+        type: Sequelize.INTEGER.UNSIGNED,
+        allowNull: true,
+        references: {
+          model: 'Subcategories',
+          key: 'subcategory_id',
+        },
+        onDelete: 'SET NULL',
+        onUpdate: 'CASCADE',
+      },
       location_id: {
         type: Sequelize.INTEGER.UNSIGNED,
         allowNull: true,
@@ -89,7 +99,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Optional: Remove ENUM type first if needed to avoid Postgres issues
     await queryInterface.dropTable('Listings');
   },
 };
