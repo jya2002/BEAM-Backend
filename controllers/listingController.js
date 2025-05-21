@@ -28,12 +28,12 @@ exports.createListing = async (req, res) => {
     });
 
     if (req.files?.length > 0) {
-      const images = req.files.map(file => ({
-        listing_id: listing.id,
-        image_path: `/uploads/listings/${file.filename}`,
-      }));
-      await ListingImage.bulkCreate(images);
-    }
+  const images = req.files.map(file => ({
+    listing_id: listing.listing_id, // 👈 Fix this
+    image_path: `/uploads/listings/${file.filename}`,
+  }));
+  await ListingImage.bulkCreate(images);
+}
 
     res.status(201).json({ message: 'Listing created successfully', listing });
   } catch (err) {
