@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: true,
     },
+
     user_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
@@ -13,6 +14,7 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id',
       },
     },
+
     category_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
@@ -21,6 +23,16 @@ module.exports = (sequelize, DataTypes) => {
         key: 'category_id',
       },
     },
+
+    subcategory_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: true,
+      references: {
+        model: 'Subcategories',
+        key: 'subcategory_id',
+      },
+    },
+
     location_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: true,
@@ -29,22 +41,27 @@ module.exports = (sequelize, DataTypes) => {
         key: 'location_id',
       },
     },
+
     title_am: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
     title_en: {
       type: DataTypes.STRING,
       allowNull: false,
     },
+
     description_am: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+
     description_en: {
       type: DataTypes.TEXT,
       allowNull: false,
     },
+
     price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
@@ -52,15 +69,18 @@ module.exports = (sequelize, DataTypes) => {
         min: 0.01,
       },
     },
+
     image_path: {
       type: DataTypes.STRING,
       allowNull: true,
       comment: 'Optional: single image preview (e.g. cover)',
     },
+
     status: {
       type: DataTypes.ENUM('available', 'sold', 'pending'),
       allowNull: false,
     },
+
     view_count: {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
@@ -83,6 +103,11 @@ module.exports = (sequelize, DataTypes) => {
 
     Listing.belongsTo(models.Category, {
       foreignKey: 'category_id',
+      onDelete: 'SET NULL',
+    });
+
+    Listing.belongsTo(models.Subcategory, {
+      foreignKey: 'subcategory_id',
       onDelete: 'SET NULL',
     });
 
@@ -112,7 +137,7 @@ module.exports = (sequelize, DataTypes) => {
     });
   };
 
-  // Helper method: increment view count
+  // Helper method to increment view count
   Listing.incrementViewCount = async function (listingId) {
     const listing = await this.findByPk(listingId);
     if (listing) {
