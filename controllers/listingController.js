@@ -52,7 +52,7 @@ exports.createListing = async (req, res) => {
     // Step 2: Save images if provided
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        listing_id: listing.id, // ✅ Use correct primary key
+        listing_id: listing.listing_id, // ✅ Use correct primary key
         image_path: `/uploads/listings/${file.filename}`,
       }));
 
