@@ -49,16 +49,15 @@ exports.createListing = async (req, res) => {
 
     let uploadedImages = [];
 
-    // Step 2: Save images if provided
+    
     if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        listing_id: listing.listing_id, // ✅ Use correct primary key
+        listing_id: listing.listing_id, 
         image_path: `/uploads/listings/${file.filename}`,
       }));
 
       const createdImages = await ListingImage.bulkCreate(images);
 
-      // Optional: Include full URLs
       uploadedImages = createdImages.map((img, i) => ({
         id: img.id,
         path: img.image_path,
@@ -66,7 +65,6 @@ exports.createListing = async (req, res) => {
       }));
     }
 
-    // Step 3: Send response
     res.status(201).json({
       message: 'Listing created successfully',
       listing,
@@ -78,7 +76,6 @@ exports.createListing = async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 };
-
 
 exports.getAllListings = async (req, res) => {
   try {
