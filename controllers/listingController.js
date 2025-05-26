@@ -12,16 +12,28 @@ const deleteImageFile = (filePath) => {
 
 exports.createListing = async (req, res) => {
   const {
-    title_am, title_en, description_am, description_en,
-    price, user_id, category_id, subcategory_id, location_id, status
+    title_am,
+    title_en,
+    description_am,
+    description_en,
+    price,
+    user_id,
+    category_id,
+    subcategory_id,
+    location_id,
+    status
   } = req.body;
 
-  // Basic validation (optional: you can require subcategory_id if needed)
-  if (!title_am || !title_en || !description_am || !description_en || !price || !user_id || !status) {
+  if (
+    !title_am || !title_en ||
+    !description_am || !description_en ||
+    !price || !user_id || !status
+  ) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
+    // Step 1: Create the listing
     const listing = await Listing.create({
       title_am,
       title_en,
@@ -30,20 +42,37 @@ exports.createListing = async (req, res) => {
       price,
       user_id,
       category_id: category_id || null,
-      subcategory_id: subcategory_id || null,  // ✅ Included here
+      subcategory_id: subcategory_id || null,
       location_id: location_id || null,
       status
     });
 
-    if (req.files?.length > 0) {
+    let uploadedImages = [];
+
+    // Step 2: Save images if provided
+    if (req.files && req.files.length > 0) {
       const images = req.files.map(file => ({
-        listing_id: listing.listing_id, // ensure this matches your DB primary key name
+        listing_id: listing.id, // ✅ Use correct primary key
         image_path: `/uploads/listings/${file.filename}`,
       }));
-      await ListingImage.bulkCreate(images);
+
+      const createdImages = await ListingImage.bulkCreate(images);
+
+      // Optional: Include full URLs
+      uploadedImages = createdImages.map((img, i) => ({
+        id: img.id,
+        path: img.image_path,
+        full_url: `${req.protocol}://${req.get('host')}${img.image_path}`
+      }));
     }
 
-    res.status(201).json({ message: 'Listing created successfully', listing });
+    // Step 3: Send response
+    res.status(201).json({
+      message: 'Listing created successfully',
+      listing,
+      images: uploadedImages
+    });
+
   } catch (err) {
     console.error('Create Listing Error:', err);
     res.status(500).json({ error: 'Internal Server Error' });
