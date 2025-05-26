@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Listing, ListingImage } = require('../models');
 const createUpload = require('../middleware/upload');
-
+const multer = require('multer');
 const router = express.Router();
 const uploadSingle = createUpload('listings').single('image');
 const uploadMultiple = createUpload('listings').array('images', 5);
