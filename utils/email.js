@@ -13,14 +13,14 @@ sgMail.setApiKey(apiKey);
  * @param {string} toEmail - Recipient's email address
  * @param {string} token - Verification token
  */
-const sendVerificationEmail = async (toEmail, token) => {
+const sendVerificationEmail = async (toEmail, verificationUrl) => {
   try {
     const msg = {
       to: toEmail,
       from: 'julia.alemu@gmail.com',
       templateId: 'd-b524b402ce9d42fc9f48e7fd934c59f1',
       dynamic_template_data: {
-        verificationUrl: `https://4cbf-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`,
+        verificationUrl, // Already complete and encoded
       },
     };
     await sgMail.send(msg);
@@ -30,6 +30,7 @@ const sendVerificationEmail = async (toEmail, token) => {
     throw error;
   }
 };
+
 
 
 /**
