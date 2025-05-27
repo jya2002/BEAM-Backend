@@ -94,26 +94,42 @@ router.post('/register', async (req, res) => {
 // --- GET /verify-email ---
 router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
+
+  console.log('📥 Incoming token:', token); // Log the raw token
+
   if (!token) return res.status(400).json({ error: 'Token is required.' });
 
   try {
+    // Just decode first for inspection
+    const decodedUnverified = jwt.decode(token);
+    console.log('🔍 Decoded (unverified):', decodedUnverified);
+
+    // Now verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('✅ Verified JWT:', decoded);
+
     const user = await User.findByPk(decoded.id);
-    if (!user) return res.status(404).json({ error: 'User not found.' });
+    if (!user) {
+      console.log('❌ User not found for ID:', decoded.id);
+      return res.status(404).json({ error: 'User not found.' });
+    }
 
     if (user.is_verified) {
+      console.log('⚠️ User already verified:', user.email);
       return res.status(400).json({ error: 'Email already verified.' });
     }
 
     user.is_verified = true;
     await user.save();
 
+    console.log('✅ Email verified for:', user.email);
     return res.json({ message: 'Email verified successfully.' });
   } catch (err) {
-    console.error('Email Verification Error:', err.message);
+    console.error('❗ Email Verification Error:', err.message);
     return res.status(400).json({ error: 'Invalid or expired token.' });
   }
 });
+
 
 // --- POST /login ---
 router.post('/login', authLimiter, async (req, res) => {
