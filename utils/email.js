@@ -17,11 +17,10 @@ const sendVerificationEmail = async (toEmail, token) => {
   try {
     const msg = {
       to: toEmail,
-      from: 'julia.alemu@gmail.com', // Use a verified sender in SendGrid
+      from: 'julia.alemu@gmail.com',
       templateId: 'd-b524b402ce9d42fc9f48e7fd934c59f1',
       dynamic_template_data: {
-        verificationUrl: `https://4cbf-16-16-79-137.ngrok-free.app/api/verify-email?token=${token}`,
-        // Use your frontend domain in production
+        verificationUrl: `https://4cbf-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`,
       },
     };
     await sgMail.send(msg);
@@ -31,6 +30,7 @@ const sendVerificationEmail = async (toEmail, token) => {
     throw error;
   }
 };
+
 
 /**
  * Send password reset email
