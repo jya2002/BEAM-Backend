@@ -20,7 +20,8 @@ const sendVerificationEmail = async (toEmail, token) => {
       from: 'julia.alemu@gmail.com', // Use a verified sender in SendGrid
       templateId: 'd-b524b402ce9d42fc9f48e7fd934c59f1',
       dynamic_template_data: {
-        verificationUrl: `http://16.16.79.137:3000/api/verify-email?token=${token}`, // Use your frontend domain in production
+        verificationUrl: `https://2b1a-16-16-79-137.ngrok-free.app/api/verify-email?token=${token}`,
+        // Use your frontend domain in production
       },
     };
     await sgMail.send(msg);
