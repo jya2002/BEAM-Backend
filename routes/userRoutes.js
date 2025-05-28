@@ -81,11 +81,10 @@ router.post('/register', async (req, res) => {
       phone_number: normalizedPhone,
     });
 
-
+console.log('✨ About to generate JWT...');
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-console.log('🔑 Verification token:', token); // <-- This logs the token to console
-
     const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
+    console.log('🔑 Verification token:', token);
 await sendVerificationEmail(user.email, verificationUrl);
 
  return res.status(201).json({ 
