@@ -45,10 +45,11 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-// --- POST /register ---
+
 router.post('/register', async (req, res) => {
   const { full_name, email, password, phone_number } = req.body;
 
+  // Validate required fields
   if (!full_name || !email || !password || !phone_number) {
     return res.status(400).json({ error: 'All fields are required.' });
   }
@@ -56,6 +57,7 @@ router.post('/register', async (req, res) => {
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedPhone = normalizePhone(phone_number);
 
+  // Validate email and phone formats
   if (!validateEmail(normalizedEmail)) {
     return res.status(400).json({ error: 'Invalid email format.' });
   }
@@ -65,41 +67,46 @@ router.post('/register', async (req, res) => {
   }
 
   try {
+    // Check for existing user/email
     const [existingUser, existingPhone] = await Promise.all([
       User.findOne({ where: { email: normalizedEmail } }),
       User.findOne({ where: { phone_number: normalizedPhone } }),
     ]);
 
-    if (existingUser) return res.status(409).json({ error: 'User with this email already exists.' });
-    if (existingPhone) return res.status(409).json({ error: 'User with this phone number already exists.' });
+    if (existingUser) {
+      return res.status(409).json({ error: 'User with this email already exists.' });
+    }
 
-    const hashed = await hashPassword(password);
+    if (existingPhone) {
+      return res.status(409).json({ error: 'User with this phone number already exists.' });
+    }
+
+    // Hash password and create user
+    const hashedPassword = await hashPassword(password);
     const user = await User.create({
       full_name,
       email: normalizedEmail,
-      password: hashed,
+      password: hashedPassword,
       phone_number: normalizedPhone,
     });
 
-console.log('✨ About to generate JWT...');
+    console.log('✨ About to generate JWT...');
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
+
+    // For development purposes
     console.log('🔑 Verification token:', token);
-await sendVerificationEmail(user.email, verificationUrl);
 
- return res.status(201).json({ 
-  message: 'Registration successful. Please verify your email.',
-  verificationToken: token // Only include in dev/testing
-});
+    const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
+    await sendVerificationEmail(user.email, verificationUrl);
 
-  } catch (err) {
-    console.error('Registration Error:', err);
-    return res.status(500).json({ error: 'Something went wrong during registration.' });
-  }
-});
+    // Send response
+    return res.status(201).json({
+      message: 'Registration successful. Please verify your email.',
+      verificationToken: token, // Included only for development/testing
+    });
 
   } catch (err) {
-    console.error('Registration Error:', err);
+    console.error('❌ Registration Error:', err);
     return res.status(500).json({ error: 'Something went wrong during registration.' });
   }
 });
