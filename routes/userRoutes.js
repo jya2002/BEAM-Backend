@@ -4,18 +4,17 @@ const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
-const { User } = require('../models'); // Sequelize User model
+const { User } = require('../models');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/email');
 
 const router = express.Router();
 
 // --- Utilities ---
-const hashPassword = async (password) => bcrypt.hash(password, 10);
-const validatePassword = async (password, hash) => bcrypt.compare(password, hash);
-const normalizePhone = (phone) => phone.replace(/\D/g, '').slice(-9); // Only last 9 digits
-const validatePhone = (phone) => /^\d{9}$/.test(phone); // Ethiopian 9-digit
-const validateEmail = (email) =>
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); // Basic email format validation
+const hashPassword = (password) => bcrypt.hash(password, 10);
+const validatePassword = (password, hash) => bcrypt.compare(password, hash);
+const normalizePhone = (phone) => phone.replace(/\D/g, '').slice(-9);
+const validatePhone = (phone) => /^\d{9}$/.test(phone);
+const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
 // --- Rate Limiting ---
 const authLimiter = rateLimit({
@@ -24,7 +23,7 @@ const authLimiter = rateLimit({
   message: 'Too many login attempts. Please try again later.',
 });
 
-// --- Middleware: Authenticate Token ---
+// --- Middleware: Token Auth ---
 const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -38,18 +37,14 @@ const authenticate = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('JWT Error:', err.message);
-    if (err.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired.' });
-    }
-    return res.status(401).json({ error: 'Invalid token.' });
+    return res.status(401).json({ error: err.name === 'TokenExpiredError' ? 'Token expired.' : 'Invalid token.' });
   }
 };
 
-
+// --- POST /register ---
 router.post('/register', async (req, res) => {
   const { full_name, email, password, phone_number } = req.body;
 
-  // Validate required fields
   if (!full_name || !email || !password || !phone_number) {
     return res.status(400).json({ error: 'All fields are required.' });
   }
@@ -57,31 +52,25 @@ router.post('/register', async (req, res) => {
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedPhone = normalizePhone(phone_number);
 
-  // Validate email and phone formats
   if (!validateEmail(normalizedEmail)) {
     return res.status(400).json({ error: 'Invalid email format.' });
   }
-
   if (!validatePhone(normalizedPhone)) {
     return res.status(400).json({ error: 'Phone number must be exactly 9 digits.' });
   }
 
   try {
-    // Check for existing user/email
     const [existingUser, existingPhone] = await Promise.all([
       User.findOne({ where: { email: normalizedEmail } }),
       User.findOne({ where: { phone_number: normalizedPhone } }),
     ]);
 
-    if (existingUser) {
-      return res.status(409).json({ error: 'User with this email already exists.' });
+    if (existingUser || existingPhone) {
+      return res.status(409).json({
+        error: existingUser ? 'User with this email already exists.' : 'User with this phone number already exists.',
+      });
     }
 
-    if (existingPhone) {
-      return res.status(409).json({ error: 'User with this phone number already exists.' });
-    }
-
-    // Hash password and create user
     const hashedPassword = await hashPassword(password);
     const user = await User.create({
       full_name,
@@ -90,19 +79,15 @@ router.post('/register', async (req, res) => {
       phone_number: normalizedPhone,
     });
 
-    console.log('✨ About to generate JWT...');
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-
-    // For development purposes
     console.log('🔑 Verification token:', token);
 
     const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
     await sendVerificationEmail(user.email, verificationUrl);
 
-    // Send response
     return res.status(201).json({
       message: 'Registration successful. Please verify your email.',
-      verificationToken: token, // Included only for development/testing
+      verificationToken: token,
     });
 
   } catch (err) {
@@ -114,35 +99,18 @@ router.post('/register', async (req, res) => {
 // --- GET /verify-email ---
 router.get('/verify-email', async (req, res) => {
   const { token } = req.query;
-
-  console.log('📥 Incoming token:', token); // Log the raw token
-
   if (!token) return res.status(400).json({ error: 'Token is required.' });
 
   try {
-    // Just decode first for inspection
-    const decodedUnverified = jwt.decode(token);
-    console.log('🔍 Decoded (unverified):', decodedUnverified);
-
-    // Now verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('✅ Verified JWT:', decoded);
-
     const user = await User.findByPk(decoded.id);
-    if (!user) {
-      console.log('❌ User not found for ID:', decoded.id);
-      return res.status(404).json({ error: 'User not found.' });
-    }
 
-    if (user.is_verified) {
-      console.log('⚠️ User already verified:', user.email);
-      return res.status(400).json({ error: 'Email already verified.' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+    if (user.is_verified) return res.status(400).json({ error: 'Email already verified.' });
 
     user.is_verified = true;
     await user.save();
 
-    console.log('✅ Email verified for:', user.email);
     return res.json({ message: 'Email verified successfully.' });
   } catch (err) {
     console.error('❗ Email Verification Error:', err.message);
@@ -150,13 +118,14 @@ router.get('/verify-email', async (req, res) => {
   }
 });
 
-
 // --- POST /login ---
 router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
-
   const normalizedEmail = email?.trim().toLowerCase();
-  if (!normalizedEmail || !password) return res.status(400).json({ error: 'Email and password are required.' });
+
+  if (!normalizedEmail || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
 
   try {
     const user = await User.findOne({ where: { email: normalizedEmail } });
@@ -166,7 +135,12 @@ router.post('/login', authLimiter, async (req, res) => {
 
     if (!user.is_verified) return res.status(403).json({ error: 'Email not verified.' });
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '1d' }
+    );
+
     return res.json({ token });
   } catch (err) {
     console.error('Login Error:', err.message);
@@ -196,7 +170,6 @@ router.post('/forgot-password', async (req, res) => {
 // --- POST /reset-password ---
 router.post('/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
-
   if (!token || !newPassword) return res.status(400).json({ error: 'Token and new password are required.' });
 
   try {
@@ -211,7 +184,7 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
-// --- GET /user (Authenticated) ---
+// --- GET /user ---
 router.get('/user', authenticate, async (req, res) => {
   try {
     const user = await User.findByPk(req.userId, {
@@ -226,7 +199,7 @@ router.get('/user', authenticate, async (req, res) => {
   }
 });
 
-// --- DELETE /user (Authenticated) ---
+// --- DELETE /user ---
 router.delete('/user', authenticate, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email is required.' });
@@ -237,7 +210,7 @@ router.delete('/user', authenticate, async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found.' });
     if (user.id !== req.userId) return res.status(403).json({ error: 'Unauthorized to delete this account.' });
 
-    await user.destroy(); // Will be a soft delete if 'paranoid' mode is on in Sequelize
+    await user.destroy();
     return res.json({ message: `User with email ${email} deleted.` });
   } catch (err) {
     console.error('Delete User Error:', err.message);
@@ -246,3 +219,4 @@ router.delete('/user', authenticate, async (req, res) => {
 });
 
 module.exports = router;
+
