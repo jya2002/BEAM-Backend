@@ -86,7 +86,17 @@ router.post('/register', async (req, res) => {
     const verificationUrl = `https://4cbf-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
 await sendVerificationEmail(user.email, verificationUrl);
 
-    return res.status(201).json({ message: 'Registration successful. Please verify your email.' });
+       return res.status(201).json({ 
+  message: 'Registration successful. Please verify your email.',
+  verificationToken: token, // <-- Add this line for testing
+  verificationUrl // <-- Optional: include the full URL
+});
+  } catch (err) {
+    console.error('Registration Error:', err);
+    return res.status(500).json({ error: 'Something went wrong during registration.' });
+  }
+});
+
   } catch (err) {
     console.error('Registration Error:', err);
     return res.status(500).json({ error: 'Something went wrong during registration.' });
