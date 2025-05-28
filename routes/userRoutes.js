@@ -88,9 +88,11 @@ console.log('🔑 Verification token:', token); // <-- This logs the token to co
     const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
 await sendVerificationEmail(user.email, verificationUrl);
 
-       return res.status(201).json({ 
-  message: 'Registration successful. Please verify your email.'// <-- Optional: include the full URL
+ return res.status(201).json({ 
+  message: 'Registration successful. Please verify your email.',
+  verificationToken: token // Only include in dev/testing
 });
+
   } catch (err) {
     console.error('Registration Error:', err);
     return res.status(500).json({ error: 'Something went wrong during registration.' });
