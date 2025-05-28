@@ -81,15 +81,15 @@ router.post('/register', async (req, res) => {
       phone_number: normalizedPhone,
     });
 
+
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    
-    const verificationUrl = `https://4cbf-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
+console.log('🔑 Verification token:', token); // <-- This logs the token to console
+
+    const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
 await sendVerificationEmail(user.email, verificationUrl);
 
        return res.status(201).json({ 
-  message: 'Registration successful. Please verify your email.',
-  verificationToken: token, // <-- Add this line for testing
-  verificationUrl // <-- Optional: include the full URL
+  message: 'Registration successful. Please verify your email.'// <-- Optional: include the full URL
 });
   } catch (err) {
     console.error('Registration Error:', err);
