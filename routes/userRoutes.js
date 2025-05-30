@@ -82,7 +82,7 @@ router.post('/register', async (req, res) => {
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     console.log('🔑 Verification token:', token);
 
-    const verificationUrl = `https://6bff-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
+    const verificationUrl = `https://f918-16-16-79-137.ngrok-free.app/api/verify-email?token=${encodeURIComponent(token)}`;
     await sendVerificationEmail(user.email, verificationUrl);
 
     return res.status(201).json({
